@@ -1,0 +1,6 @@
+{
+  "name": "YouTubebate版",
+  "description": "YouTubebate版 - YouTube Player for Education 埋め込みプレイヤー。Googleスプレッドシート(A1セル)から最新パラメータを動的取得・補正、別タブ再生・GAS(code.gs/index.html)出力対応の赤黒ダークテーマ。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

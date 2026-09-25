@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTubebate版 - YouTube Player for Education (GAS)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans JP', sans-serif;
+      background-color: #000000;
+      color: #f5f5f5;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen flex flex-col antialiased selection:bg-red-600 selection:text-white">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="border-b border-neutral-800 bg-neutral-950/95 backdrop-blur-md sticky top-0 z-50 shadow-lg shadow-black/80">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchMainView('player')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-red-600 to-black flex items-center justify-center shadow-lg shadow-red-600/40 ring-1 ring-red-500/40">
+          <i class="fa-solid fa-play text-white text-base ml-0.5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black text-white tracking-wide">
+              YouTubebate版
+            </h1>
+            <span class="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded tracking-widest uppercase shadow-sm shadow-red-600/50">
+              BETA
+            </span>
+          </div>
+          <p class="text-[11px] text-neutral-400 font-medium hidden sm:block">
+            YouTube Player for Education (赤×黒 エディション)
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Search Bar -->
+      <div class="flex-1 max-w-lg mx-auto order-3 sm:order-2 w-full sm:w-auto">
+        <form id="headerSearchForm" onsubmit="handleHeaderSearch(event)" class="relative flex items-center">
+          <input
+            type="text"
+            id="headerSearchInput"
+            placeholder="YouTube URL または 動画ID を入力..."
+            class="w-full bg-black border border-neutral-800 hover:border-neutral-700 rounded-l-full py-2 pl-4 pr-10 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-red-600 transition font-mono"
+          />
+          <button
+            type="submit"
+            class="bg-neutral-900 hover:bg-neutral-800 border border-l-0 border-neutral-800 hover:border-neutral-700 rounded-r-full px-4 py-2 text-neutral-300 hover:text-white transition flex items-center justify-center"
+            title="プレイヤーを生成"
+          >
+            <i class="fa-solid fa-magnifying-glass text-red-500 text-xs"></i>
+          </button>
+        </form>
+      </div>
+
+      <!-- Top Nav Tabs & Account Avatar -->
+      <div class="flex items-center gap-2.5 order-2 sm:order-3">
+        <div class="hidden lg:flex items-center bg-black p-1 rounded-xl border border-neutral-800">
+          <button
+            id="navTabPlayer"
+            onclick="switchMainView('player')"
+            class="nav-tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-red-600 text-white shadow-md shadow-red-600/40"
+          >
+            <i class="fa-solid fa-play text-xs"></i>
+            <span>再生</span>
+          </button>
+
+          <button
+            id="navTabCreator"
+            onclick="switchMainView('creator')"
+            class="nav-tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-neutral-400 hover:text-white"
+          >
+            <i class="fa-solid fa-tv text-xs text-red-500"></i>
+            <span id="navCreatorName" class="truncate max-w-[120px]">投稿者チャンネル</span>
+          </button>
+
+          <button
+            id="navTabAccount"
+            onclick="switchMainView('account')"
+            class="nav-tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-neutral-400 hover:text-white"
+          >
+            <i class="fa-solid fa-user text-xs"></i>
+            <span>マイアカウント</span>
+          </button>
+
+          <button
+            id="navTabDocs"
+            onclick="switchMainView('docs')"
+            class="nav-tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-neutral-400 hover:text-white"
+          >
+            <i class="fa-solid fa-book text-xs"></i>
+            <span>仕様</span>
+          </button>
+        </div>
+
+        <!-- Account Profile Popup -->
+        <div class="relative">
+          <button
+            onclick="toggleAccountDropdown()"
+            class="flex items-center gap-1.5 p-1 rounded-full hover:bg-neutral-900 border border-neutral-800 transition focus:outline-none ring-1 ring-red-600/40"
+            title="アカウントメニュー"
+          >
+            <img
+              id="headerUserAvatar"
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
+              alt="User"
+              class="w-8 h-8 rounded-full object-cover"
+            />
+            <i class="fa-solid fa-chevron-down text-[10px] text-neutral-400 hidden sm:block mr-1"></i>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div
+            id="accountDropdownMenu"
+            class="hidden absolute right-0 mt-2 w-72 bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl p-2 z-50"
+          >
+            <div class="flex items-center gap-3 p-3 border-b border-neutral-800">
+              <img
+                id="dropdownUserAvatar"
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
+                alt="User"
+                class="w-10 h-10 rounded-full object-cover ring-2 ring-red-600/50"
+              />
+              <div class="min-w-0 flex-1">
+                <p id="dropdownUserName" class="text-xs font-bold text-white truncate">YouTubebate ユーザー</p>
+                <p id="dropdownUserHandle" class="text-[11px] text-neutral-400 font-mono truncate">@youtubebate_official</p>
+                <button
+                  onclick="switchMainView('account'); toggleAccountDropdown(false);"
+                  class="text-[11px] text-red-400 hover:text-red-300 font-bold block mt-0.5"
+                >
+                  マイ チャンネルを表示 &rarr;
+                </button>
+              </div>
+            </div>
+
+            <div class="py-2 space-y-1 text-xs">
+              <button
+                onclick="switchMainView('creator'); toggleAccountDropdown(false);"
+                class="w-full flex items-center gap-3 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-900 rounded-xl transition font-medium text-left"
+              >
+                <i class="fa-solid fa-tv text-red-500 w-4"></i>
+                <span id="dropdownCreatorLinkText">投稿者のチャンネル画面</span>
+              </button>
+
+              <button
+                onclick="switchMainView('account'); setAccountTab('history'); toggleAccountDropdown(false);"
+                class="w-full flex items-center gap-3 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-900 rounded-xl transition font-medium text-left"
+              >
+                <i class="fa-solid fa-clock-rotate-left text-neutral-400 w-4"></i>
+                <span>再生履歴</span>
+              </button>
+
+              <button
+                onclick="switchMainView('account'); setAccountTab('liked'); toggleAccountDropdown(false);"
+                class="w-full flex items-center gap-3 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-900 rounded-xl transition font-medium text-left"
+              >
+                <i class="fa-solid fa-thumbs-up text-neutral-400 w-4"></i>
+                <span>高く評価した動画</span>
+              </button>
+
+              <button
+                onclick="switchMainView('account'); setAccountTab('switch'); toggleAccountDropdown(false);"
+                class="w-full flex items-center gap-3 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-900 rounded-xl transition font-medium text-left"
+              >
+                <i class="fa-solid fa-users text-neutral-400 w-4"></i>
+                <span>アカウントを切り替える</span>
+              </button>
+            </div>
+
+            <div class="pt-2 border-t border-neutral-900 px-3 py-1 flex items-center justify-between text-[10px] text-neutral-500 font-mono">
+              <span>Sheet: 1dily2w...</span>
+              <span class="text-red-500">Education Sync</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================= VIEW 1: PLAYER VIEW ================= -->
+    <div id="viewPlayer" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left 8 Cols: Video Embed Player, Channel Bar, Actions, Expandable Description, Comments & Replies -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- 16:9 Aspect Ratio Embed Frame -->
+          <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-2 sm:p-3 shadow-2xl">
+            <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-neutral-900 ring-1 ring-red-950/60 flex items-center justify-center">
+              <iframe
+                id="educationIframe"
+                src=""
+                title="YouTubebate版 Player for Education"
+                class="w-full h-full border-0 absolute inset-0 hidden"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+              <div id="emptyPlayerState" class="flex flex-col items-center justify-center text-neutral-600 p-6 text-center">
+                <i class="fa-solid fa-tv text-red-600/80 text-4xl mb-3"></i>
+                <p class="text-sm font-bold text-neutral-300">
+                  YouTube URLを入力すると YouTubebate版 が起動します
+                </p>
+                <p class="text-xs text-neutral-600 mt-1 font-mono">
+                  youtubeeducation.com/embed/[videoId][param]
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Details & Channel Info -->
+          <div class="space-y-3 px-1">
+            <h1 id="videoTitleText" class="text-base sm:text-xl font-bold text-white leading-snug">
+              動画を選択またはURLを入力してください
+            </h1>
+
+            <!-- Channel Bar & Action Buttons -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-900">
+              
+              <!-- Left: Video Creator Profile (Click to open Creator Channel) -->
+              <div class="flex items-center gap-3">
+                <button type="button" onclick="openCurrentCreatorChannel()" class="group focus:outline-none">
+                  <img
+                    id="videoChannelAvatar"
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80"
+                    alt="Channel"
+                    class="w-10 h-10 rounded-full object-cover ring-2 ring-neutral-800 group-hover:ring-red-500 transition shrink-0 cursor-pointer"
+                  />
+                </button>
+
+                <div>
+                  <button type="button" onclick="openCurrentCreatorChannel()" class="flex items-center gap-1.5 group text-left focus:outline-none">
+                    <span id="videoChannelName" class="text-sm font-bold text-white group-hover:text-red-400 underline-offset-2 group-hover:underline cursor-pointer">
+                      Rick Astley
+                    </span>
+                    <i class="fa-solid fa-circle-check text-neutral-400 text-xs"></i>
+                  </button>
+                  <p id="videoSubscribersText" class="text-[11px] text-neutral-400 font-mono">
+                    チャンネル登録者数 425万人
+                  </p>
+                </div>
+
+                <!-- Subscribe Toggle Button -->
+                <button
+                  id="subscribeBtn"
+                  onclick="toggleSubscribeAction()"
+                  class="ml-2 px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow bg-red-600 hover:bg-red-500 text-white shadow-red-600/40 border border-red-500/50"
+                >
+                  <i class="fa-regular fa-bell text-xs"></i>
+                  <span id="subscribeBtnLabel">チャンネル登録</span>
+                </button>
+
+                <!-- Direct Creator Channel Screen Button -->
+                <button
+                  onclick="openCurrentCreatorChannel()"
+                  class="px-3 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-red-600/50 text-[11px] font-bold text-red-400 hover:text-red-300 transition flex items-center gap-1.5"
+                >
+                  <i class="fa-solid fa-user-circle"></i>
+                  <span>投稿者画面</span>
+                </button>
+              </div>
+
+              <!-- Right: Actions -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Like & Dislike Pill -->
+                <div class="flex items-center bg-neutral-900 rounded-full border border-neutral-800 overflow-hidden">
+                  <button
+                    id="likeVideoBtn"
+                    onclick="toggleVideoLike()"
+                    class="flex items-center gap-2 px-3.5 py-2 text-xs font-bold transition hover:bg-neutral-800 text-neutral-200"
+                  >
+                    <i class="fa-solid fa-thumbs-up text-xs"></i>
+                    <span id="likeVideoLabel">高評価</span>
+                  </button>
+                  <div class="w-[1px] h-4 bg-neutral-800"></div>
+                  <button class="px-3 py-2 text-xs text-neutral-200 hover:bg-neutral-800 transition">
+                    <i class="fa-solid fa-thumbs-down text-xs"></i>
+                  </button>
+                </div>
+
+                <!-- Share URL -->
+                <button
+                  onclick="copyEducationUrl()"
+                  class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-red-600/40 text-xs font-bold text-neutral-200 transition"
+                  title="Education URLをコピー"
+                >
+                  <i class="fa-solid fa-share text-red-400 text-xs"></i>
+                  <span>共有 (URL)</span>
+                </button>
+
+                <!-- Open New Tab -->
+                <button
+                  onclick="openInNewTab()"
+                  class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-red-600/40 text-xs font-bold text-red-400 transition"
+                  title="全画面・別タブで再生"
+                >
+                  <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                  <span>別タブ</span>
+                </button>
+
+                <!-- Copy Iframe -->
+                <button
+                  onclick="copyIframeHtml()"
+                  class="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-red-600/40 text-xs font-bold text-neutral-200 transition"
+                  title="iframeタグをコピー"
+                >
+                  <i class="fa-solid fa-code text-neutral-400 text-xs"></i>
+                  <span>iframe</span>
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Expandable Description Box -->
+            <div
+              id="descriptionBox"
+              onclick="toggleDescriptionExpand()"
+              class="bg-neutral-950 hover:bg-neutral-900/80 p-4 rounded-2xl border border-neutral-800 cursor-pointer transition space-y-2"
+            >
+              <div class="flex items-center gap-2 text-xs font-bold text-neutral-300 font-mono">
+                <span id="descViewsText" class="text-white">15億回 視聴</span>
+                <span>•</span>
+                <span id="descPublishedText">14年前</span>
+                <span class="text-red-400 font-sans ml-1">#YouTubeEducation</span>
+                <span class="text-red-400 font-sans">#YouTubebate版</span>
+              </div>
+
+              <div id="descMainText" class="text-xs text-neutral-300 leading-relaxed font-sans line-clamp-2">
+                YouTube Player for Education（youtubeeducation.com）による広告非表示・集中学習用埋め込みプレイヤー。
+                Google スプレッドシート（A1セル）から動的パラメータをリアルタイム取得し適用しています。
+              </div>
+
+              <div id="descExpandedExtra" class="hidden mt-3 pt-3 border-t border-neutral-800 space-y-2 text-xs text-neutral-400 font-mono">
+                <p id="descInfoChannel">📍 投稿者チャンネル: Rick Astley</p>
+                <p id="descInfoVideoId">📍 動画ID: dQw4w9WgXcQ</p>
+                <p id="descInfoEmbedUrl">🔗 埋め込みURL: https://www.youtubeeducation.com/embed/dQw4w9WgXcQ</p>
+                <p id="descInfoParam">⚙️ 動的パラメータ: (スプレッドシート連携)</p>
+              </div>
+
+              <div class="pt-1 flex items-center gap-1 text-xs font-bold text-neutral-400">
+                <span id="descToggleBtnLabel">さらに表示</span>
+                <i id="descToggleBtnIcon" class="fa-solid fa-chevron-down text-[10px]"></i>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ================= COMMENTS & NESTED REPLIES SECTION ================= -->
+          <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-5 shadow-2xl space-y-6">
+            
+            <!-- Header: Count & Sort -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <h2 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                  <span>コメント</span>
+                  <span id="commentsTotalCountLabel" class="text-neutral-400 font-mono text-sm">342件</span>
+                </h2>
+
+                <div class="flex items-center gap-1.5 text-xs text-neutral-400 bg-black px-2.5 py-1 rounded-lg border border-neutral-800">
+                  <span class="font-medium">並べ替え:</span>
+                  <select id="commentSortSelect" onchange="renderCommentsList()" class="bg-transparent text-white font-bold focus:outline-none cursor-pointer">
+                    <option value="top" class="bg-neutral-900 text-white">評価順</option>
+                    <option value="newest" class="bg-neutral-900 text-white">新しい順</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add Comment Box -->
+            <div class="flex items-start gap-3 pt-2">
+              <img
+                id="commentUserAvatar"
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80"
+                alt="User"
+                class="w-10 h-10 rounded-full object-cover ring-2 ring-red-600/40 shrink-0"
+              />
+              <div class="flex-1 space-y-2">
+                <textarea
+                  id="newCommentInput"
+                  placeholder="コメントを追加..."
+                  rows="2"
+                  class="w-full bg-black border border-neutral-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition resize-none font-sans"
+                ></textarea>
+                <div class="flex items-center justify-between pt-1">
+                  <span id="commentAsUserLabel" class="text-[11px] text-neutral-500">
+                    YouTubebate ユーザー (@youtubebate_official) として投稿
+                  </span>
+                  <button
+                    onclick="handlePostNewComment()"
+                    class="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow-md shadow-red-600/40 transition flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span>コメント</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comments Render Container -->
+            <div id="commentsListContainer" class="space-y-6 pt-2">
+              <!-- Rendered Dynamically by JavaScript -->
+            </div>
+
+            <!-- Main Comments "さらに表示" Button -->
+            <div id="showMoreCommentsWrapper" class="pt-2 text-center">
+              <button
+                onclick="handleShowMoreComments()"
+                class="w-full py-2.5 px-4 rounded-xl bg-black hover:bg-neutral-900 text-xs font-bold text-red-500 hover:text-red-400 border border-neutral-800 hover:border-red-600/40 transition flex items-center justify-center gap-2 shadow-sm"
+              >
+                <i class="fa-solid fa-chevron-down text-xs text-red-500"></i>
+                <span id="showMoreCommentsLabel">コメントをさらに表示</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Right 4 Cols: URL Input Bar, Related Videos & Parameter Inspector -->
+        <div class="lg:col-span-4 space-y-6">
+          
+          <!-- URL Input Card -->
+          <div class="bg-neutral-950 rounded-2xl border border-neutral-800 hover:border-red-600/40 p-4 sm:p-5 shadow-2xl space-y-3.5 transition duration-300">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label for="sideUrlInput" class="text-xs font-black text-red-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <i class="fa-solid fa-tv text-xs"></i>
+                  <span>YouTube URL / 動画ID を入力</span>
+                </label>
+                <span id="currentVideoIdBadge" class="text-[11px] font-mono bg-red-950 text-red-400 px-2 py-0.5 rounded border border-red-800/60 font-bold hidden">
+                  ID: dQw4w9WgXcQ
+                </span>
+              </div>
+
+              <div class="relative">
+                <input
+                  id="sideUrlInput"
+                  type="text"
+                  placeholder="例: https://www.youtube.com/watch?v=..."
+                  class="w-full bg-black border border-neutral-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition font-mono"
+                  value="<?= typeof initialVideoId !== 'undefined' && initialVideoId ? initialVideoId : '' ?>"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                onclick="openInNewTab()"
+                class="bg-neutral-900 hover:bg-neutral-800 text-neutral-100 font-bold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2 border border-neutral-800 hover:border-red-600/40"
+              >
+                <i class="fa-solid fa-arrow-up-right-from-square text-red-400 text-xs"></i>
+                <span>別タブで開く</span>
+              </button>
+
+              <button
+                onclick="loadVideoFromInput()"
+                class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-red-600/40 border border-red-500/50"
+              >
+                <i class="fa-solid fa-play text-xs"></i>
+                <span>再生・反映</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ================= RELATED VIDEOS SECTION ================= -->
+          <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-4 sm:p-5 shadow-2xl space-y-4">
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-2.5 h-2.5 rounded-full bg-red-600 shadow-sm shadow-red-500"></div>
+                  <h2 class="text-xs font-bold text-white uppercase tracking-wider">
+                    関連動画 & 次の候補
+                  </h2>
+                </div>
+                <span id="relatedCountBadge" class="text-[11px] font-mono text-neutral-400">12件</span>
+              </div>
+
+              <!-- Category Filter Pills -->
+              <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+                <button onclick="filterRelatedCategory('すべて')" class="cat-pill px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-md shadow-red-600/30 whitespace-nowrap">すべて</button>
+                <button onclick="filterRelatedCategory('音楽')" class="cat-pill px-3 py-1 rounded-full text-xs font-medium bg-black text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 whitespace-nowrap">音楽</button>
+                <button onclick="filterRelatedCategory('勉強用')" class="cat-pill px-3 py-1 rounded-full text-xs font-medium bg-black text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 whitespace-nowrap">勉強用</button>
+                <button onclick="filterRelatedCategory('おすすめ')" class="cat-pill px-3 py-1 rounded-full text-xs font-medium bg-black text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 whitespace-nowrap">おすすめ</button>
+                <button onclick="filterRelatedCategory('開発・技術')" class="cat-pill px-3 py-1 rounded-full text-xs font-medium bg-black text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 whitespace-nowrap">開発・技術</button>
+              </div>
+            </div>
+
+            <!-- Related Videos List Container -->
+            <div id="relatedVideosList" class="space-y-3">
+              <!-- Rendered Dynamically by JavaScript -->
+            </div>
+
+            <!-- Related Videos "さらに表示" Button -->
+            <div id="showMoreRelatedWrapper" class="pt-1">
+              <button
+                onclick="handleShowMoreRelated()"
+                class="w-full py-2.5 px-3 rounded-xl bg-black hover:bg-neutral-900 text-xs font-bold text-red-500 hover:text-red-400 border border-neutral-800 hover:border-red-600/40 transition flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <i class="fa-solid fa-chevron-down text-xs text-red-500"></i>
+                <span id="showMoreRelatedLabel">関連動画をさらに表示</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Spreadsheet Parameter Card -->
+          <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-4 sm:p-5 shadow-2xl space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-2.5 h-2.5 rounded-full bg-red-600 shadow-sm shadow-red-500"></div>
+                <h2 class="text-xs font-bold text-neutral-200 uppercase tracking-wider">
+                  Spreadsheet A1 リアルタイム連携
+                </h2>
+              </div>
+              <button onclick="refreshSpreadsheetParam()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold">
+                <i class="fa-solid fa-arrows-rotate text-[10px]"></i> 再取得
+              </button>
+            </div>
+
+            <div class="bg-black p-3 rounded-xl border border-neutral-900 space-y-1.5 text-xs font-mono">
+              <div class="flex justify-between text-neutral-400">
+                <span>シートID:</span>
+                <span class="text-red-400 truncate max-w-[150px]">1dily2wiik92...</span>
+              </div>
+              <div class="flex justify-between text-neutral-400">
+                <span>A1パラメータ:</span>
+                <span id="sheetParamDisplay" class="text-white truncate max-w-[150px]">(取得中...)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= VIEW 2: CREATOR CHANNEL VIEW ================= -->
+    <div id="viewCreator" class="space-y-6 hidden">
+      <!-- Back button -->
+      <button
+        onclick="switchMainView('player')"
+        class="inline-flex items-center gap-2 text-xs font-bold text-neutral-400 hover:text-white bg-neutral-900/80 hover:bg-neutral-800 px-4 py-2 rounded-xl border border-neutral-800 transition shadow-sm"
+      >
+        <i class="fa-solid fa-arrow-left text-red-500 text-xs"></i>
+        <span>動画プレイヤーに戻る</span>
+      </button>
+
+      <!-- Creator Header Card -->
+      <div class="bg-neutral-950 rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl">
+        <!-- Banner -->
+        <div class="relative h-44 sm:h-64 w-full bg-neutral-900 overflow-hidden">
+          <img
+            id="creatorBannerImg"
+            src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80"
+            alt="Banner"
+            class="w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/30 to-transparent"></div>
+        </div>
+
+        <!-- Creator Profile Row -->
+        <div class="px-6 sm:px-8 pb-6 -mt-16 sm:-mt-20 relative z-10 space-y-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-5">
+            <div class="flex items-end gap-5">
+              <img
+                id="creatorAvatarImg"
+                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80"
+                alt="Creator Avatar"
+                class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-4 ring-black shadow-2xl bg-neutral-900 shrink-0"
+              />
+
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h1 id="creatorNameHeading" class="text-xl sm:text-3xl font-black text-white tracking-tight">
+                    Rick Astley
+                  </h1>
+                  <i class="fa-solid fa-circle-check text-red-500 text-lg"></i>
+                  <span class="text-[10px] font-bold bg-red-950 text-red-400 border border-red-800/60 px-2 py-0.5 rounded-full font-mono">
+                    投稿者公式チャンネル
+                  </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs text-neutral-400 font-mono">
+                  <span id="creatorHandleText" class="text-white font-bold">@RickAstleyYT</span>
+                  <span>•</span>
+                  <span id="creatorSubsText" class="text-neutral-300">チャンネル登録者数 425万人</span>
+                  <span>•</span>
+                  <span id="creatorVideosCountText">動画 142 本</span>
+                </div>
+
+                <p id="creatorBioText" class="text-xs text-neutral-300 max-w-2xl line-clamp-2 leading-relaxed">
+                  The official YouTube channel of Rick Astley. Never Gonna Give You Up, Together Forever, and new music out now!
+                </p>
+              </div>
+            </div>
+
+            <!-- Subscribe & Share -->
+            <div class="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+              <button
+                id="creatorSubscribeBtn"
+                onclick="toggleSubscribeAction()"
+                class="flex-1 sm:flex-none px-6 py-2.5 rounded-full text-xs font-black transition flex items-center justify-center gap-2 shadow-lg bg-red-600 hover:bg-red-500 text-white shadow-red-600/40 border border-red-500/50"
+              >
+                <i class="fa-regular fa-bell text-xs"></i>
+                <span id="creatorSubscribeBtnLabel">チャンネル登録</span>
+              </button>
+
+              <button
+                onclick="copyCreatorChannelLink()"
+                class="px-4 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-red-600/40 text-xs font-bold text-neutral-200 transition flex items-center gap-1.5"
+              >
+                <i class="fa-solid fa-share text-red-400 text-xs"></i>
+                <span>共有</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Creator Tabs -->
+          <div class="flex items-center gap-1 border-b border-neutral-800 pt-3 overflow-x-auto no-scrollbar">
+            <button onclick="switchCreatorSubTab('home')" id="creatorTabHome" class="creator-subtab px-5 py-3 text-xs font-bold transition border-b-2 border-red-600 text-red-500 whitespace-nowrap">ホーム</button>
+            <button onclick="switchCreatorSubTab('videos')" id="creatorTabVideos" class="creator-subtab px-5 py-3 text-xs font-bold transition border-b-2 border-transparent text-neutral-400 hover:text-white whitespace-nowrap">動画</button>
+            <button onclick="switchCreatorSubTab('community')" id="creatorTabCommunity" class="creator-subtab px-5 py-3 text-xs font-bold transition border-b-2 border-transparent text-neutral-400 hover:text-white whitespace-nowrap">コミュニティ</button>
+            <button onclick="switchCreatorSubTab('about')" id="creatorTabAbout" class="creator-subtab px-5 py-3 text-xs font-bold transition border-b-2 border-transparent text-neutral-400 hover:text-white whitespace-nowrap">概要 (About)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Creator Tab 1: Home -->
+      <div id="creatorSubViewHome" class="space-y-6">
+        <!-- Featured Video Showcase -->
+        <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-5 sm:p-6 shadow-2xl space-y-4">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-sparkles text-red-500 text-xs"></i>
+            <h2 class="text-xs font-black text-white uppercase tracking-wider">
+              注目・おすすめの動画 (Featured Video)
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div id="creatorFeaturedThumbBox" onclick="playCurrentVideo()" class="lg:col-span-5 relative aspect-video rounded-xl overflow-hidden bg-black border border-neutral-800 group cursor-pointer shadow-lg">
+              <img
+                id="creatorFeaturedThumbImg"
+                src="https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg"
+                alt="Featured"
+                class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              />
+              <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition flex items-center justify-center">
+                <div class="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl shadow-red-600/50 group-hover:scale-110 transition">
+                  <i class="fa-solid fa-play ml-0.5 text-base"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7 space-y-3">
+              <h3 id="creatorFeaturedTitle" onclick="playCurrentVideo()" class="text-base sm:text-lg font-bold text-white hover:text-red-400 cursor-pointer transition leading-snug">
+                Rick Astley - Never Gonna Give You Up (Official Music Video)
+              </h3>
+              <p class="text-xs text-neutral-400 font-mono">
+                YouTube Player for Education 集中再生対応
+              </p>
+              <p id="creatorFeaturedDesc" class="text-xs text-neutral-300 leading-relaxed font-sans line-clamp-3">
+                The official video for “Never Gonna Give You Up” by Rick Astley. Taken from the album ‘Whenever You Need Somebody’.
+              </p>
+              <div class="pt-2">
+                <button onclick="playCurrentVideo()" class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-600/40 transition inline-flex items-center gap-2 border border-red-500/50">
+                  <i class="fa-solid fa-play text-xs"></i>
+                  <span>Education プレイヤーで今すぐ再生</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Creator Uploads Row -->
+        <div class="bg-neutral-950 rounded-2xl border border-neutral-800 p-5 sm:p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-fire text-red-500 text-xs"></i>
+              <span>アップロード動画</span>
+            </h2>
+            <button onclick="switchCreatorSubTab('videos')" class="text-xs text-red-500 hover:underline font-bold">
+              すべて見る &rarr;
+            </button>
+          </div>
+
+          <div id="creatorUploadsHomeGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-1">
+            <!-- Rendered Dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Creator Tab 2: Videos Grid -->
+      <div id="creatorSubViewVideos" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-5 hidden">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-tv text-red-500 text-xs"></i>
+          <span>動画一覧</span>
+        </h2>
+        <div id="creatorAllVideosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+          <!-- Rendered Dynamically -->
+        </div>
+      </div>
+
+      <!-- Creator Tab 3: Community Posts -->
+      <div id="creatorSubViewCommunity" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-5 hidden">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-comments text-red-500 text-xs"></i>
+          <span>コミュニティの投稿 (Community Posts)</span>
+        </h2>
+        <div id="creatorCommunityPostsList" class="space-y-4">
+          <!-- Rendered Dynamically -->
+        </div>
+      </div>
+
+      <!-- Creator Tab 4: About / Stats -->
+      <div id="creatorSubViewAbout" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-6 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+          <div class="md:col-span-8 space-y-4">
+            <h2 class="text-sm font-bold text-white">説明 (About Description)</h2>
+            <p id="creatorAboutBio" class="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans bg-black p-4 rounded-xl border border-neutral-900">
+              The official YouTube channel of Rick Astley.
+            </p>
+          </div>
+
+          <div class="md:col-span-4 space-y-4">
+            <h2 class="text-sm font-bold text-white">詳細 (Channel Stats)</h2>
+            <div class="bg-black p-4 rounded-xl border border-neutral-900 space-y-3 text-xs">
+              <div class="flex items-center gap-2.5 text-neutral-300">
+                <i class="fa-regular fa-calendar text-red-500 w-4"></i>
+                <span id="creatorAboutJoined">2007年5月10日 に登録</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-neutral-300">
+                <i class="fa-regular fa-eye text-red-500 w-4"></i>
+                <span id="creatorAboutViews">総視聴回数 24億回</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-neutral-300">
+                <i class="fa-solid fa-globe text-red-500 w-4"></i>
+                <span id="creatorAboutCountry">国・地域: イギリス</span>
+              </div>
+              <div class="flex items-center gap-2.5 text-neutral-300">
+                <i class="fa-solid fa-circle-check text-red-500 w-4"></i>
+                <span>認証バッジ: 公式クリエイター</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 3: MY ACCOUNT VIEW ================= -->
+    <div id="viewAccount" class="space-y-6 hidden">
+      <div class="bg-neutral-950 rounded-3xl border border-neutral-800 overflow-hidden shadow-2xl">
+        <!-- Banner -->
+        <div class="relative h-44 sm:h-56 w-full bg-neutral-900 overflow-hidden">
+          <img
+            id="userBannerImg"
+            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80"
+            alt="User Banner"
+            class="w-full h-full object-cover opacity-80"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent"></div>
+        </div>
+
+        <div class="px-6 sm:px-8 pb-6 -mt-16 sm:-mt-20 relative z-10 space-y-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+            <div class="flex items-end gap-4">
+              <img
+                id="userProfileImg"
+                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+                alt="Profile"
+                class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-black shadow-2xl bg-neutral-900"
+              />
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <h1 id="userProfileName" class="text-xl sm:text-2xl font-black text-white tracking-tight">YouTubebate ユーザー</h1>
+                  <i class="fa-solid fa-circle-check text-red-500 text-base"></i>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs text-neutral-400 font-mono">
+                  <span id="userProfileHandle" class="text-red-400 font-bold">@youtubebate_official</span>
+                  <span>•</span>
+                  <span>チャンネル登録者数 1.24万</span>
+                  <span>•</span>
+                  <span>動画 48 本</span>
+                </div>
+                <p id="userProfileBio" class="text-xs text-neutral-300 max-w-xl line-clamp-2 pt-1">
+                  YouTube Player for Education 活用中。広告なし・集中環境で学習動画を配信しています。
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+              <button onclick="setAccountTab('switch')" class="flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-red-600/40 transition flex items-center justify-center gap-1.5 border border-red-500/50">
+                <i class="fa-solid fa-users text-xs"></i>
+                <span>アカウント切替</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Account Subtabs -->
+          <div class="flex items-center gap-2 border-b border-neutral-800 pt-2 overflow-x-auto no-scrollbar">
+            <button onclick="setAccountTab('history')" id="accTabHistory" class="acc-subtab flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition border-b-2 border-red-600 text-red-500 whitespace-nowrap">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span>再生履歴</span>
+            </button>
+            <button onclick="setAccountTab('liked')" id="accTabLiked" class="acc-subtab flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition border-b-2 border-transparent text-neutral-400 hover:text-white whitespace-nowrap">
+              <i class="fa-solid fa-thumbs-up"></i>
+              <span>高く評価した動画</span>
+            </button>
+            <button onclick="setAccountTab('switch')" id="accTabSwitch" class="acc-subtab flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition border-b-2 border-transparent text-neutral-400 hover:text-white whitespace-nowrap">
+              <i class="fa-solid fa-users"></i>
+              <span>アカウント切り替え</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Tab Content: History -->
+      <div id="accViewHistory" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-red-500"></i>
+            <span>再生履歴 (YouTube Education Player)</span>
+          </h2>
+          <button onclick="clearWatchHistory()" class="text-xs text-neutral-400 hover:text-red-400 flex items-center gap-1 transition">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+            <span>履歴を消去</span>
+          </button>
+        </div>
+        <div id="accHistoryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+          <!-- Rendered Dynamically -->
+        </div>
+      </div>
+
+      <!-- Account Tab Content: Liked Videos -->
+      <div id="accViewLiked" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-4 hidden">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-thumbs-up text-red-500"></i>
+          <span>高く評価した動画</span>
+        </h2>
+        <div id="accLikedGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+          <!-- Rendered Dynamically -->
+        </div>
+      </div>
+
+      <!-- Account Tab Content: Switch User -->
+      <div id="accViewSwitch" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-5 hidden">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-users text-red-500"></i>
+          <span>アカウント切り替え</span>
+        </h2>
+        <div id="accUsersListGrid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Rendered Dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= VIEW 4: DOCS VIEW ================= -->
+    <div id="viewDocs" class="bg-neutral-950 rounded-2xl border border-neutral-800 p-6 shadow-2xl space-y-6 hidden">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-black">
+          <i class="fa-solid fa-book"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-black text-white">YouTubebate版 仕様・連携ガイド</h2>
+          <p class="text-xs text-neutral-400">Google Apps Script (GAS) ＆ YouTube Player for Education</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs text-neutral-300 leading-relaxed">
+        <div class="bg-black p-4 rounded-xl border border-neutral-900 space-y-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            1. スプレッドシート A1 セルの動的パラメータ取得
+          </h3>
+          <p>
+            スプレッドシートID (<code>1dily2wiik92TAyK3zyIsu8TDuyYNoF20IM1iMk_X-pg</code>) の A1 セルからリアルタイムで YouTube Education 埋め込みパラメータを取得・適用します。
+          </p>
+        </div>
+
+        <div class="bg-black p-4 rounded-xl border border-neutral-900 space-y-2">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            2. 投稿者チャンネル画面 & コメント/関連動画システム
+          </h3>
+          <p>
+            本物のYouTube同様に、投稿者の公式チャンネル（バナー、動画一覧、コミュニティ、概要）へのアクセス、関連動画の「さらに表示」、コメントと階層化された返信の「さらに表示」を完全実装しています。
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="border-t border-neutral-900 bg-neutral-950/90 py-5 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4 text-xs text-neutral-500">
+      <div class="flex items-center gap-2">
+        <span class="font-black text-white">YouTubebate版</span>
+        <span>•</span>
+        <span>YouTube Player for Education (赤×黒 エディション)</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <button onclick="switchMainView('player')" class="hover:text-white">プレイヤー</button>
+        <button onclick="switchMainView('creator')" class="hover:text-red-400">投稿者チャンネル</button>
+        <button onclick="switchMainView('account')" class="hover:text-red-400">マイアカウント</button>
+        <button onclick="switchMainView('docs')" class="hover:text-red-400">仕様</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="hidden fixed bottom-6 right-6 bg-neutral-900 border border-red-500/60 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 z-50 animate-bounce">
+    <i class="fa-solid fa-circle-check text-red-500 text-sm"></i>
+    <span id="toastNotificationText" class="font-bold"></span>
+  </div>
+
+  <!-- ==================== JAVASCRIPT APP ENGINE ==================== -->
+  <script>
+    const SPREADSHEET_ID = '1dily2wiik92TAyK3zyIsu8TDuyYNoF20IM1iMk_X-pg';
+
+    // State
+    let currentVideoId = '<?= typeof initialVideoId !== "undefined" && initialVideoId ? initialVideoId : "" ?>';
+    let currentSpreadsheetParam = '<?= typeof initialParam !== "undefined" && initialParam ? initialParam : "" ?>';
+    let isSubscribed = false;
+    let isVideoLiked = false;
+    let isDescExpanded = false;
+    let visibleRelatedCount = 5;
+    let visibleCommentsCount = 3;
+    let selectedRelatedCategory = 'すべて';
+    let expandedReplies = {};
+    let visibleRepliesCount = {};
+
+    // Mock Users
+    const APP_USERS = [
+      {
+        id: 'user_main',
+        name: 'YouTubebate ユーザー',
+        handle: '@youtubebate_official',
+        avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        bannerUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80',
+        bio: 'YouTube Player for Education 活用中。広告なし・集中環境で学習動画を配信しています。'
+      },
+      {
+        id: 'user_student',
+        name: '田中 健太 (学習用アカウント)',
+        handle: '@kenta_study',
+        avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+        bannerUrl: 'https://images.unsplash.com/photo-1507842229451-7f01be7fe7ab?w=1200&auto=format&fit=crop&q=80',
+        bio: 'プログラミングと数学の動画を整理中 📚'
+      },
+      {
+        id: 'user_creator',
+        name: 'TechLab Japan',
+        handle: '@techlab_jp',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        bannerUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&auto=format&fit=crop&q=80',
+        bio: 'Webテクノロジー・GAS・フロントエンド開発の解説チャンネル。'
+      }
+    ];
+    let currentUser = APP_USERS[0];
+
+    // Mock Related Videos Dataset
+    const ALL_RELATED_VIDEOS = [
+      {
+        id: 'dQw4w9WgXcQ',
+        title: 'Rick Astley - Never Gonna Give You Up (Official Music Video)',
+        channelTitle: 'Rick Astley',
+        channelAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+        viewCount: '15億回',
+        publishedAt: '14年前',
+        duration: '3:33',
+        category: '音楽'
+      },
+      {
+        id: 'L_LUpnjgPso',
+        title: 'synthwave radio 🌌 - chill / retro beats to relax, study to',
+        channelTitle: 'Lofi Girl',
+        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        viewCount: '840万回',
+        publishedAt: '2年前',
+        duration: 'LIVE',
+        category: '勉強用'
+      },
+      {
+        id: 'M7lc1UVf-VE',
+        title: 'YouTube Developers: Introducing the YouTube IFrame Player API',
+        channelTitle: 'Google Developers',
+        channelAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=80',
+        viewCount: '180万回',
+        publishedAt: '12年前',
+        duration: '4:15',
+        category: '開発・技術'
+      },
+      {
+        id: 'jfKfPfyJRdk',
+        title: 'lofi hip hop radio 📚 - beats to relax/study to',
+        channelTitle: 'Lofi Girl',
+        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        viewCount: '9200万回',
+        publishedAt: '1年前',
+        duration: 'LIVE',
+        category: '勉強用'
+      },
+      {
+        id: 'kXYiU_JCYtU',
+        title: 'Linkin Park - Numb (Official Music Video) [4K Upgrade]',
+        channelTitle: 'Linkin Park',
+        channelAvatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80',
+        viewCount: '22億回',
+        publishedAt: '16年前',
+        duration: '3:07',
+        category: '音楽'
+      },
+      {
+        id: 'kJQP7kiw5Fk',
+        title: 'Luis Fonsi - Despacito ft. Daddy Yankee',
+        channelTitle: 'Luis Fonsi',
+        channelAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+        viewCount: '84億回',
+        publishedAt: '7年前',
+        duration: '4:42',
+        category: '音楽'
+      },
+      {
+        id: '9bZkp7q19f0',
+        title: 'PSY - GANGNAM STYLE (강남スタイル) M/V',
+        channelTitle: 'officialpsy',
+        channelAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+        viewCount: '51億回',
+        publishedAt: '11年前',
+        duration: '4:13',
+        category: '音楽'
+      },
+      {
+        id: 'fJ9rUzIMcZQ',
+        title: 'Queen - Bohemian Rhapsody (Official Video Remastered)',
+        channelTitle: 'Queen Official',
+        channelAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        viewCount: '17億回',
+        publishedAt: '15年前',
+        duration: '5:59',
+        category: '名曲'
+      }
+    ];
+
+    // Mock Comments
+    let ALL_COMMENTS = [
+      {
+        id: 'c1',
+        authorName: 'YouTube Education Fan',
+        authorHandle: '@edu_master_jp',
+        authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+        text: 'YouTubebate版のおかげで、スプレッドシートの動的パラメータを反映しながら広告なしのEducationプレイヤーで快適に視聴できます！最高です！🔥',
+        timestamp: '2日前',
+        likes: 1420,
+        isLiked: false,
+        replies: [
+          {
+            id: 'r1_1',
+            authorName: 'しあTube開発者',
+            authorHandle: '@shia_tube_dev',
+            authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=80',
+            text: 'ご活用いただきありがとうございます！スプレッドシートA1セルのリアルタイム更新にも完全対応しています！✨',
+            timestamp: '1日前',
+            likes: 312
+          },
+          {
+            id: 'r1_2',
+            authorName: 'Webエンジニア佐藤',
+            authorHandle: '@sato_dev',
+            authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+            text: 'GASでもcode.gsとindex.htmlだけで簡単にデプロイできるのが本当に便利ですね。',
+            timestamp: '18時間前',
+            likes: 85
+          },
+          {
+            id: 'r1_3',
+            authorName: '学生プログラマー',
+            authorHandle: '@student_coder',
+            authorAvatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80',
+            text: '別タブで開く機能も重宝してます！',
+            timestamp: '10時間前',
+            likes: 29
+          }
+        ]
+      },
+      {
+        id: 'c2',
+        authorName: 'Classic Rock Records',
+        authorHandle: '@classic_music_lover',
+        authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+        text: '何度聴いても色褪せない名曲。Educationプレイヤーで見ると余計なポップアップがなくて曲に没頭できるのが素晴らしい。',
+        timestamp: '5日前',
+        likes: 893,
+        isLiked: false,
+        replies: [
+          {
+            id: 'r2_1',
+            authorName: '80s Disco Fan',
+            authorHandle: '@80s_disco',
+            authorAvatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=100&auto=format&fit=crop&q=80',
+            text: '2026年になっても伝説のリックロールですね笑',
+            timestamp: '3日前',
+            likes: 198
+          }
+        ]
+      },
+      {
+        id: 'c3',
+        authorName: 'Google Workspace 管理者',
+        authorHandle: '@gw_admin_tokyo',
+        authorAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&auto=format&fit=crop&q=80',
+        text: '授業用のプロジェクター投影で重宝しています。スプレッドシート側で全クラス一括で埋め込みパラメータを制御できる設計が本当に賢い。',
+        timestamp: '1週間前',
+        likes: 452,
+        isLiked: false,
+        replies: []
+      },
+      {
+        id: 'c4',
+        authorName: 'Daily Internet Explorer',
+        authorHandle: '@net_explorer',
+        authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+        text: '2026年もここに辿り着いた人👍',
+        timestamp: '2週間前',
+        likes: 3890,
+        isLiked: false,
+        replies: []
+      }
+    ];
+
+    // Watch History
+    let watchHistoryList = [
+      {
+        id: 'h1',
+        videoId: 'dQw4w9WgXcQ',
+        title: 'Rick Astley - Never Gonna Give You Up',
+        channelTitle: 'Rick Astley',
+        watchedAt: Date.now() - 1000 * 60 * 30
+      }
+    ];
+
+    // Liked Video IDs
+    let likedVideoIds = ['dQw4w9WgXcQ'];
+
+    // Helper: Extract YouTube ID
+    function extractVideoId(input) {
+      if (!input) return '';
+      const str = String(input).trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+      const watchMatch = str.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+      if (watchMatch) return watchMatch[1];
+      const shortMatch = str.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+      if (shortMatch) return shortMatch[1];
+      const shortsMatch = str.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+      if (shortsMatch) return shortsMatch[1];
+      const embedMatch = str.match(/embed\/([a-zA-Z0-9_-]{11})/);
+      if (embedMatch) return embedMatch[1];
+      return '';
+    }
+
+    function buildEducationEmbedUrl(vid) {
+      if (!vid) return '';
+      let p = (currentSpreadsheetParam || '').trim();
+      if (p && !p.startsWith('?') && !p.startsWith('&')) {
+        p = '?' + p;
+      }
+      return 'https://www.youtubeeducation.com/embed/' + vid + p;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toastNotification');
+      const text = document.getElementById('toastNotificationText');
+      text.innerText = msg;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 2500);
+    }
+
+    function toggleAccountDropdown(force) {
+      const menu = document.getElementById('accountDropdownMenu');
+      if (typeof force === 'boolean') {
+        if (force) menu.classList.remove('hidden');
+        else menu.classList.add('hidden');
+      } else {
+        menu.classList.toggle('hidden');
+      }
+    }
+
+    // View Navigation
+    function switchMainView(viewName) {
+      document.getElementById('viewPlayer').classList.add('hidden');
+      document.getElementById('viewCreator').classList.add('hidden');
+      document.getElementById('viewAccount').classList.add('hidden');
+      document.getElementById('viewDocs').classList.add('hidden');
+
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/40');
+        btn.classList.add('text-neutral-400');
+      });
+
+      if (viewName === 'player') {
+        document.getElementById('viewPlayer').classList.remove('hidden');
+        document.getElementById('navTabPlayer').classList.add('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/40');
+        document.getElementById('navTabPlayer').classList.remove('text-neutral-400');
+      } else if (viewName === 'creator') {
+        document.getElementById('viewCreator').classList.remove('hidden');
+        document.getElementById('navTabCreator').classList.add('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/40');
+        document.getElementById('navTabCreator').classList.remove('text-neutral-400');
+        renderCreatorChannelScreen();
+      } else if (viewName === 'account') {
+        document.getElementById('viewAccount').classList.remove('hidden');
+        document.getElementById('navTabAccount').classList.add('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/40');
+        document.getElementById('navTabAccount').classList.remove('text-neutral-400');
+        renderAccountScreen();
+      } else if (viewName === 'docs') {
+        document.getElementById('viewDocs').classList.remove('hidden');
+        document.getElementById('navTabDocs').classList.add('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/40');
+        document.getElementById('navTabDocs').classList.remove('text-neutral-400');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Creator Tabs
+    function switchCreatorSubTab(tabName) {
+      document.getElementById('creatorSubViewHome').classList.add('hidden');
+      document.getElementById('creatorSubViewVideos').classList.add('hidden');
+      document.getElementById('creatorSubViewCommunity').classList.add('hidden');
+      document.getElementById('creatorSubViewAbout').classList.add('hidden');
+
+      document.querySelectorAll('.creator-subtab').forEach(b => {
+        b.classList.remove('border-red-600', 'text-red-500');
+        b.classList.add('border-transparent', 'text-neutral-400');
+      });
+
+      if (tabName === 'home') {
+        document.getElementById('creatorSubViewHome').classList.remove('hidden');
+        document.getElementById('creatorTabHome').classList.add('border-red-600', 'text-red-500');
+      } else if (tabName === 'videos') {
+        document.getElementById('creatorSubViewVideos').classList.remove('hidden');
+        document.getElementById('creatorTabVideos').classList.add('border-red-600', 'text-red-500');
+      } else if (tabName === 'community') {
+        document.getElementById('creatorSubViewCommunity').classList.remove('hidden');
+        document.getElementById('creatorTabCommunity').classList.add('border-red-600', 'text-red-500');
+      } else if (tabName === 'about') {
+        document.getElementById('creatorSubViewAbout').classList.remove('hidden');
+        document.getElementById('creatorTabAbout').classList.add('border-red-600', 'text-red-500');
+      }
+    }
+
+    // Account Tabs
+    function setAccountTab(tabName) {
+      document.getElementById('accViewHistory').classList.add('hidden');
+      document.getElementById('accViewLiked').classList.add('hidden');
+      document.getElementById('accViewSwitch').classList.add('hidden');
+
+      document.querySelectorAll('.acc-subtab').forEach(b => {
+        b.classList.remove('border-red-600', 'text-red-500');
+        b.classList.add('border-transparent', 'text-neutral-400');
+      });
+
+      if (tabName === 'history') {
+        document.getElementById('accViewHistory').classList.remove('hidden');
+        document.getElementById('accTabHistory').classList.add('border-red-600', 'text-red-500');
+      } else if (tabName === 'liked') {
+        document.getElementById('accViewLiked').classList.remove('hidden');
+        document.getElementById('accTabLiked').classList.add('border-red-600', 'text-red-500');
+      } else if (tabName === 'switch') {
+        document.getElementById('accViewSwitch').classList.remove('hidden');
+        document.getElementById('accTabSwitch').classList.add('border-red-600', 'text-red-500');
+      }
+    }
+
+    // Load video into player
+    function applyVideo(vid, optTitle, optChannel) {
+      if (!vid) return;
+      currentVideoId = vid;
+      const iframe = document.getElementById('educationIframe');
+      const emptyState = document.getElementById('emptyPlayerState');
+      const embedUrl = buildEducationEmbedUrl(vid);
+
+      iframe.src = embedUrl;
+      iframe.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+
+      const preset = ALL_RELATED_VIDEOS.find(v => v.id === vid);
+      const title = optTitle || (preset ? preset.title : `YouTube 動画 (${vid})`);
+      const channel = optChannel || (preset ? preset.channelTitle : 'Rick Astley');
+
+      document.getElementById('videoTitleText').innerText = title;
+      document.getElementById('videoChannelName').innerText = channel;
+      document.getElementById('navCreatorName').innerText = channel;
+      document.getElementById('dropdownCreatorLinkText').innerText = `投稿者のチャンネル (${channel})`;
+      document.getElementById('sideUrlInput').value = vid;
+      document.getElementById('headerSearchInput').value = '';
+
+      const badge = document.getElementById('currentVideoIdBadge');
+      badge.innerText = `ID: ${vid}`;
+      badge.classList.remove('hidden');
+
+      document.getElementById('descInfoChannel').innerText = `📍 投稿者チャンネル: ${channel}`;
+      document.getElementById('descInfoVideoId').innerText = `📍 動画ID: ${vid}`;
+      document.getElementById('descInfoEmbedUrl').innerText = `🔗 埋め込みURL: ${embedUrl}`;
+
+      // History
+      watchHistoryList = [{ id: 'h_' + Date.now(), videoId: vid, title, channelTitle: channel, watchedAt: Date.now() }, ...watchHistoryList.filter(h => h.videoId !== vid)];
+
+      renderCommentsList();
+      renderRelatedVideosList();
+    }
+
+    function loadVideoFromInput() {
+      const input = document.getElementById('sideUrlInput').value;
+      const vid = extractVideoId(input);
+      if (vid) {
+        applyVideo(vid);
+        showToast('動画プレイヤーを読み込みました！');
+      } else {
+        showToast('有効なYouTube URLまたは動画IDを入力してください');
+      }
+    }
+
+    function handleHeaderSearch(e) {
+      e.preventDefault();
+      const input = document.getElementById('headerSearchInput').value;
+      const vid = extractVideoId(input);
+      if (vid) {
+        applyVideo(vid);
+        switchMainView('player');
+        showToast('動画を検索・再生しました');
+      } else {
+        showToast('有効なYouTube URLを入力してください');
+      }
+    }
+
+    function openCurrentCreatorChannel() {
+      switchMainView('creator');
+    }
+
+    function openInNewTab() {
+      if (!currentVideoId) {
+        showToast('動画が選択されていません');
+        return;
+      }
+      const embedUrl = buildEducationEmbedUrl(currentVideoId);
+      window.open(embedUrl, '_blank');
+    }
+
+    function copyEducationUrl() {
+      if (!currentVideoId) return;
+      const embedUrl = buildEducationEmbedUrl(currentVideoId);
+      navigator.clipboard.writeText(embedUrl).then(() => showToast('Education 埋め込み URL をコピーしました！'));
+    }
+
+    function copyIframeHtml() {
+      if (!currentVideoId) return;
+      const embedUrl = buildEducationEmbedUrl(currentVideoId);
+      const tag = `<iframe width="100%" height="100%" src="${embedUrl}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+      navigator.clipboard.writeText(tag).then(() => showToast('iframeタグをコピーしました！'));
+    }
+
+    function copyCreatorChannelLink() {
+      const channel = document.getElementById('videoChannelName').innerText;
+      navigator.clipboard.writeText(`https://www.youtube.com/@${channel.replace(/\\s+/g, '')}`).then(() => showToast('チャンネルリンクをコピーしました！'));
+    }
+
+    function toggleSubscribeAction() {
+      isSubscribed = !isSubscribed;
+      const btn = document.getElementById('subscribeBtn');
+      const label = document.getElementById('subscribeBtnLabel');
+      const cBtn = document.getElementById('creatorSubscribeBtn');
+      const cLabel = document.getElementById('creatorSubscribeBtnLabel');
+
+      if (isSubscribed) {
+        btn.classList.remove('bg-red-600', 'hover:bg-red-500', 'shadow-red-600/40');
+        btn.classList.add('bg-neutral-800', 'hover:bg-neutral-700', 'text-neutral-300');
+        label.innerText = '登録済み (通知ON)';
+        if (cBtn) {
+          cBtn.classList.remove('bg-red-600', 'hover:bg-red-500', 'shadow-red-600/40');
+          cBtn.classList.add('bg-neutral-800', 'hover:bg-neutral-700', 'text-neutral-300');
+          cLabel.innerText = '登録済み (通知ON)';
+        }
+        showToast('チャンネル登録しました！');
+      } else {
+        btn.classList.add('bg-red-600', 'hover:bg-red-500', 'shadow-red-600/40');
+        btn.classList.remove('bg-neutral-800', 'hover:bg-neutral-700', 'text-neutral-300');
+        label.innerText = 'チャンネル登録';
+        if (cBtn) {
+          cBtn.classList.add('bg-red-600', 'hover:bg-red-500', 'shadow-red-600/40');
+          cBtn.classList.remove('bg-neutral-800', 'hover:bg-neutral-700', 'text-neutral-300');
+          cLabel.innerText = 'チャンネル登録';
+        }
+        showToast('登録を解除しました');
+      }
+    }
+
+    function toggleVideoLike() {
+      if (!currentVideoId) return;
+      isVideoLiked = !isVideoLiked;
+      const btn = document.getElementById('likeVideoBtn');
+      const label = document.getElementById('likeVideoLabel');
+      if (isVideoLiked) {
+        btn.classList.add('text-red-500', 'font-black');
+        label.innerText = '高評価済み';
+        if (!likedVideoIds.includes(currentVideoId)) likedVideoIds.push(currentVideoId);
+        showToast('高く評価した動画に追加しました');
+      } else {
+        btn.classList.remove('text-red-500', 'font-black');
+        label.innerText = '高評価';
+        likedVideoIds = likedVideoIds.filter(id => id !== currentVideoId);
+      }
+    }
+
+    function toggleDescriptionExpand() {
+      isDescExpanded = !isDescExpanded;
+      const main = document.getElementById('descMainText');
+      const extra = document.getElementById('descExpandedExtra');
+      const label = document.getElementById('descToggleBtnLabel');
+      const icon = document.getElementById('descToggleBtnIcon');
+
+      if (isDescExpanded) {
+        main.classList.remove('line-clamp-2');
+        extra.classList.remove('hidden');
+        label.innerText = '一部を表示';
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+      } else {
+        main.classList.add('line-clamp-2');
+        extra.classList.add('hidden');
+        label.innerText = 'さらに表示';
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+      }
+    }
+
+    // Related Videos Rendering with "さらに表示"
+    function filterRelatedCategory(cat) {
+      selectedRelatedCategory = cat;
+      visibleRelatedCount = 5;
+      document.querySelectorAll('.cat-pill').forEach(b => {
+        if (b.innerText === cat) {
+          b.className = 'cat-pill px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-md shadow-red-600/30 whitespace-nowrap';
+        } else {
+          b.className = 'cat-pill px-3 py-1 rounded-full text-xs font-medium bg-black text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-800 whitespace-nowrap';
+        }
+      });
+      renderRelatedVideosList();
+    }
+
+    function renderRelatedVideosList() {
+      const container = document.getElementById('relatedVideosList');
+      const filtered = ALL_RELATED_VIDEOS.filter(v => {
+        if (selectedRelatedCategory === 'すべて' || selectedRelatedCategory === '関連動画') return true;
+        return v.category === selectedRelatedCategory;
+      });
+
+      document.getElementById('relatedCountBadge').innerText = `${filtered.length}件`;
+      const displayed = filtered.slice(0, visibleRelatedCount);
+
+      container.innerHTML = displayed.map(v => {
+        const isCur = v.id === currentVideoId;
+        return `
+          <div onclick="applyVideo('${v.id}', '${v.title.replace(/'/g, "\\'")}', '${v.channelTitle.replace(/'/g, "\\'")}')" class="flex gap-3 p-2 rounded-xl cursor-pointer transition group border ${isCur ? 'bg-red-950/40 border-red-600/60 shadow-md shadow-red-950/50' : 'bg-black/60 hover:bg-neutral-900/90 border-transparent hover:border-neutral-800'}">
+            <div class="relative w-36 sm:w-40 aspect-video rounded-lg overflow-hidden shrink-0 bg-neutral-900 border border-neutral-800 group-hover:border-red-600/50 transition">
+              <img src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg" alt="${v.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+              <span class="absolute bottom-1 right-1 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/90 text-white">${v.duration}</span>
+              ${isCur ? '<div class="absolute inset-0 bg-red-600/30 flex items-center justify-center"><span class="text-[10px] font-black bg-red-600 text-white px-2 py-0.5 rounded shadow">再生中</span></div>' : ''}
+            </div>
+            <div class="flex-1 min-w-0 space-y-1 py-0.5">
+              <h3 class="text-xs font-bold line-clamp-2 leading-snug ${isCur ? 'text-red-400 font-black' : 'text-neutral-200 group-hover:text-white'}">${v.title}</h3>
+              <div class="flex items-center gap-1 text-[11px] text-neutral-400">
+                <span class="truncate">${v.channelTitle}</span>
+                <i class="fa-solid fa-circle-check text-[10px] text-neutral-400"></i>
+              </div>
+              <div class="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
+                <span>${v.viewCount}</span> • <span>${v.publishedAt}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const btnWrapper = document.getElementById('showMoreRelatedWrapper');
+      if (filtered.length > visibleRelatedCount) {
+        btnWrapper.classList.remove('hidden');
+        document.getElementById('showMoreRelatedLabel').innerText = `関連動画をさらに表示 (残り ${filtered.length - visibleRelatedCount} 件)`;
+      } else {
+        btnWrapper.classList.add('hidden');
+      }
+    }
+
+    function handleShowMoreRelated() {
+      visibleRelatedCount += 5;
+      renderRelatedVideosList();
+    }
+
+    // Comments & Replies Rendering with "さらに表示"
+    function renderCommentsList() {
+      const container = document.getElementById('commentsListContainer');
+      const sort = document.getElementById('commentSortSelect').value;
+      const sorted = [...ALL_COMMENTS].sort((a, b) => {
+        if (sort === 'newest') return 0;
+        return b.likes - a.likes;
+      });
+
+      const totalCount = sorted.reduce((acc, c) => acc + 1 + (c.replies ? c.replies.length : 0), 0);
+      document.getElementById('commentsTotalCountLabel').innerText = `${totalCount.toLocaleString()}件`;
+
+      const displayed = sorted.slice(0, visibleCommentsCount);
+
+      container.innerHTML = displayed.map(c => {
+        const isRepliesOpen = expandedReplies[c.id] || false;
+        const repLimit = visibleRepliesCount[c.id] || 2;
+        const repToShow = (c.replies || []).slice(0, repLimit);
+        const hasMoreRep = (c.replies || []).length > repLimit;
+
+        return `
+          <div class="space-y-3 group">
+            <div class="flex items-start gap-3">
+              <img src="${c.authorAvatar}" alt="${c.authorName}" class="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-neutral-800" />
+              <div class="flex-1 space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold text-white hover:underline cursor-pointer">${c.authorName}</span>
+                  <span class="text-[11px] text-neutral-500 font-mono">${c.authorHandle}</span>
+                  <span class="text-[11px] text-neutral-500">• ${c.timestamp}</span>
+                </div>
+                <p class="text-xs sm:text-sm text-neutral-200 leading-relaxed font-sans">${c.text}</p>
+                <div class="flex items-center gap-4 pt-1 text-xs text-neutral-400">
+                  <button onclick="toggleCommentLike('${c.id}')" class="flex items-center gap-1.5 hover:text-white transition ${c.isLiked ? 'text-red-500 font-bold' : ''}">
+                    <i class="fa-solid fa-thumbs-up text-xs ${c.isLiked ? 'text-red-500' : ''}"></i>
+                    <span class="text-[11px] font-mono">${c.likes > 0 ? c.likes : ''}</span>
+                  </button>
+                  <button class="hover:text-white transition"><i class="fa-solid fa-thumbs-down text-xs"></i></button>
+                  <button onclick="toggleReplyBox('${c.id}')" class="text-xs font-bold text-neutral-400 hover:text-red-400 transition ml-1">返信</button>
+                </div>
+
+                <!-- Reply Input Box -->
+                <div id="replyBox_${c.id}" class="hidden mt-3 flex items-start gap-2.5 pl-2 border-l-2 border-red-600">
+                  <img src="${currentUser.avatarUrl}" alt="${currentUser.name}" class="w-7 h-7 rounded-full object-cover shrink-0" />
+                  <div class="flex-1 space-y-2">
+                    <input type="text" id="replyInput_${c.id}" placeholder="${c.authorName} さんへ返信..." class="w-full bg-black border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-red-600" />
+                    <div class="flex justify-end gap-2">
+                      <button onclick="toggleReplyBox('${c.id}', false)" class="text-xs text-neutral-400 hover:text-white px-2.5 py-1">キャンセル</button>
+                      <button onclick="handlePostReply('${c.id}')" class="text-xs bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded-md shadow">返信する</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Nested Replies Section -->
+                ${c.replies && c.replies.length > 0 ? `
+                  <div class="pt-2">
+                    <button onclick="toggleRepliesAccordion('${c.id}')" class="inline-flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-400 transition py-1 px-2 rounded-full hover:bg-red-950/30">
+                      <i class="fa-solid ${isRepliesOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i>
+                      <span>${c.replies.length} 件の返信</span>
+                    </button>
+
+                    ${isRepliesOpen ? `
+                      <div class="space-y-3.5 mt-2 pl-4 border-l-2 border-neutral-900">
+                        ${repToShow.map(r => `
+                          <div class="flex items-start gap-2.5">
+                            <img src="${r.authorAvatar}" alt="${r.authorName}" class="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-neutral-800" />
+                            <div class="flex-1 space-y-0.5">
+                              <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-bold text-white">${r.authorName}</span>
+                                <span class="text-[10px] text-neutral-500 font-mono">${r.authorHandle}</span>
+                                <span class="text-[10px] text-neutral-500">• ${r.timestamp}</span>
+                              </div>
+                              <p class="text-xs text-neutral-300 leading-relaxed font-sans">${r.text}</p>
+                              <div class="flex items-center gap-3 pt-0.5 text-xs text-neutral-400">
+                                <button class="flex items-center gap-1 hover:text-white transition"><i class="fa-solid fa-thumbs-up text-[10px]"></i> <span class="text-[10px] font-mono">${r.likes || ''}</span></button>
+                                <button class="hover:text-white transition"><i class="fa-solid fa-thumbs-down text-[10px]"></i></button>
+                              </div>
+                            </div>
+                          </div>
+                        `).join('')}
+
+                        ${hasMoreRep ? `
+                          <button onclick="handleShowMoreReplies('${c.id}')" class="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1.5 py-1 px-2 rounded-lg hover:bg-neutral-900 transition">
+                            <i class="fa-solid fa-reply text-red-500 text-xs"></i>
+                            <span>返信をさらに表示 (${c.replies.length - repLimit}件)</span>
+                          </button>
+                        ` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                ` : ''}
+
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const btnWrap = document.getElementById('showMoreCommentsWrapper');
+      if (sorted.length > visibleCommentsCount) {
+        btnWrap.classList.remove('hidden');
+        document.getElementById('showMoreCommentsLabel').innerText = `コメントをさらに表示 (残り ${sorted.length - visibleCommentsCount} 件)`;
+      } else {
+        btnWrap.classList.add('hidden');
+      }
+    }
+
+    function handleShowMoreComments() {
+      visibleCommentsCount += 4;
+      renderCommentsList();
+    }
+
+    function toggleRepliesAccordion(commentId) {
+      expandedReplies[commentId] = !expandedReplies[commentId];
+      if (expandedReplies[commentId] && !visibleRepliesCount[commentId]) {
+        visibleRepliesCount[commentId] = 2;
+      }
+      renderCommentsList();
+    }
+
+    function handleShowMoreReplies(commentId) {
+      visibleRepliesCount[commentId] = (visibleRepliesCount[commentId] || 2) + 3;
+      renderCommentsList();
+    }
+
+    function toggleReplyBox(commentId, force) {
+      const box = document.getElementById(`replyBox_${commentId}`);
+      if (box) {
+        if (typeof force === 'boolean') {
+          if (force) box.classList.remove('hidden');
+          else box.classList.add('hidden');
+        } else {
+          box.classList.toggle('hidden');
+        }
+      }
+    }
+
+    function handlePostNewComment() {
+      const input = document.getElementById('newCommentInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const newComment = {
+        id: 'c_' + Date.now(),
+        authorName: currentUser.name,
+        authorHandle: currentUser.handle,
+        authorAvatar: currentUser.avatarUrl,
+        text,
+        timestamp: 'たった今',
+        likes: 0,
+        isLiked: false,
+        replies: []
+      };
+      ALL_COMMENTS = [newComment, ...ALL_COMMENTS];
+      input.value = '';
+      renderCommentsList();
+      showToast('コメントを投稿しました！');
+    }
+
+    function handlePostReply(commentId) {
+      const input = document.getElementById(`replyInput_${commentId}`);
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      const newReply = {
+        id: 'r_' + Date.now(),
+        authorName: currentUser.name,
+        authorHandle: currentUser.handle,
+        authorAvatar: currentUser.avatarUrl,
+        text,
+        timestamp: 'たった今',
+        likes: 0
+      };
+      const found = ALL_COMMENTS.find(c => c.id === commentId);
+      if (found) {
+        if (!found.replies) found.replies = [];
+        found.replies.push(newReply);
+        expandedReplies[commentId] = true;
+        visibleRepliesCount[commentId] = Math.max(visibleRepliesCount[commentId] || 2, found.replies.length);
+      }
+      renderCommentsList();
+      showToast('返信を投稿しました！');
+    }
+
+    function toggleCommentLike(commentId) {
+      const found = ALL_COMMENTS.find(c => c.id === commentId);
+      if (found) {
+        found.isLiked = !found.isLiked;
+        found.likes += found.isLiked ? 1 : -1;
+        renderCommentsList();
+      }
+    }
+
+    // Render Creator Channel Screen
+    function renderCreatorChannelScreen() {
+      const chName = document.getElementById('videoChannelName').innerText || 'Rick Astley';
+      document.getElementById('creatorNameHeading').innerText = chName;
+      document.getElementById('creatorHandleText').innerText = '@' + chName.toLowerCase().replace(/\\s+/g, '');
+      document.getElementById('creatorAboutBio').innerText = `${chName} の公式YouTubeチャンネルです。YouTube Player for Educationにより安全・広告非表示で視聴できます。`;
+
+      const gridHome = document.getElementById('creatorUploadsHomeGrid');
+      const gridAll = document.getElementById('creatorAllVideosGrid');
+      const comList = document.getElementById('creatorCommunityPostsList');
+
+      const sampleVideos = ALL_RELATED_VIDEOS.slice(0, 3);
+      const vHtml = sampleVideos.map(v => `
+        <div onclick="applyVideo('${v.id}'); switchMainView('player');" class="bg-black rounded-xl border border-neutral-900 hover:border-red-600/50 p-3 cursor-pointer group transition space-y-2 shadow-sm">
+          <div class="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
+            <img src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg" alt="${v.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+            <span class="absolute bottom-1 right-1 text-[10px] font-mono font-bold bg-black/90 text-white px-1.5 py-0.5 rounded">${v.duration}</span>
+          </div>
+          <div class="space-y-0.5">
+            <h3 class="text-xs font-bold text-neutral-200 group-hover:text-white line-clamp-2">${v.title}</h3>
+            <p class="text-[10px] text-neutral-400 font-mono">${v.viewCount} 視聴 • ${v.publishedAt}</p>
+          </div>
+        </div>
+      `).join('');
+
+      gridHome.innerHTML = vHtml;
+      gridAll.innerHTML = ALL_RELATED_VIDEOS.map(v => `
+        <div onclick="applyVideo('${v.id}'); switchMainView('player');" class="bg-black rounded-xl border border-neutral-900 hover:border-red-600/50 p-3 cursor-pointer group transition space-y-2 shadow-sm">
+          <div class="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
+            <img src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg" alt="${v.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+            <span class="absolute bottom-1 right-1 text-[10px] font-mono font-bold bg-black/90 text-white px-1.5 py-0.5 rounded">${v.duration}</span>
+          </div>
+          <div class="space-y-0.5">
+            <h3 class="text-xs font-bold text-neutral-200 group-hover:text-white line-clamp-2">${v.title}</h3>
+            <p class="text-[10px] text-neutral-400 font-mono">${v.viewCount} 視聴 • ${v.publishedAt}</p>
+          </div>
+        </div>
+      `).join('');
+
+      comList.innerHTML = `
+        <div class="bg-black rounded-2xl border border-neutral-900 p-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <img src="${document.getElementById('creatorAvatarImg').src}" class="w-10 h-10 rounded-full object-cover ring-1 ring-neutral-800" />
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-white">${chName}</span>
+                <i class="fa-solid fa-circle-check text-red-500 text-xs"></i>
+              </div>
+              <span class="text-[11px] text-neutral-500 font-mono">2日前</span>
+            </div>
+          </div>
+          <p class="text-xs sm:text-sm text-neutral-200 leading-relaxed font-sans">
+            いつもご視聴ありがとうございます！${chName}の最新動画を公開しました。ぜひEducationプレイヤーでもご覧ください！✨
+          </p>
+          <div class="flex items-center gap-4 pt-1 text-xs text-neutral-400 border-t border-neutral-900">
+            <span class="text-red-400"><i class="fa-solid fa-thumbs-up"></i> 1,420</span>
+            <span><i class="fa-solid fa-message"></i> 84 件のコメント</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Account Screen
+    function renderAccountScreen() {
+      document.getElementById('userProfileName').innerText = currentUser.name;
+      document.getElementById('userProfileHandle').innerText = currentUser.handle;
+      document.getElementById('userProfileImg').src = currentUser.avatarUrl;
+      document.getElementById('userBannerImg').src = currentUser.bannerUrl;
+      document.getElementById('userProfileBio').innerText = currentUser.bio;
+
+      // History
+      const hGrid = document.getElementById('accHistoryGrid');
+      hGrid.innerHTML = watchHistoryList.map(h => `
+        <div onclick="applyVideo('${h.videoId}'); switchMainView('player');" class="bg-black rounded-xl border border-neutral-900 hover:border-red-600/50 p-3 cursor-pointer group transition space-y-2 shadow-sm">
+          <div class="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
+            <img src="https://img.youtube.com/vi/${h.videoId}/mqdefault.jpg" alt="${h.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          </div>
+          <div class="space-y-0.5">
+            <h3 class="text-xs font-bold text-neutral-200 group-hover:text-white line-clamp-2">${h.title}</h3>
+            <p class="text-[11px] text-neutral-400">${h.channelTitle}</p>
+          </div>
+        </div>
+      `).join('');
+
+      // Liked
+      const lGrid = document.getElementById('accLikedGrid');
+      const likedVideos = ALL_RELATED_VIDEOS.filter(v => likedVideoIds.includes(v.id));
+      lGrid.innerHTML = likedVideos.map(v => `
+        <div onclick="applyVideo('${v.id}'); switchMainView('player');" class="bg-black rounded-xl border border-neutral-900 hover:border-red-600/50 p-3 cursor-pointer group transition space-y-2 shadow-sm">
+          <div class="relative aspect-video rounded-lg overflow-hidden bg-neutral-900">
+            <img src="https://img.youtube.com/vi/${v.id}/mqdefault.jpg" alt="${v.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+          </div>
+          <div class="space-y-0.5">
+            <h3 class="text-xs font-bold text-neutral-200 group-hover:text-white line-clamp-2">${v.title}</h3>
+            <p class="text-[11px] text-neutral-400">${v.channelTitle}</p>
+          </div>
+        </div>
+      `).join('');
+
+      // Switch Accounts
+      const uGrid = document.getElementById('accUsersListGrid');
+      uGrid.innerHTML = APP_USERS.map(u => {
+        const isCur = u.id === currentUser.id;
+        return `
+          <div onclick="switchUserAccount('${u.id}')" class="p-4 rounded-2xl border cursor-pointer transition relative space-y-3 ${isCur ? 'bg-red-950/40 border-red-600 shadow-lg shadow-red-950/60 ring-1 ring-red-500/50' : 'bg-black hover:bg-neutral-900 border-neutral-800'}">
+            <div class="flex items-center gap-3">
+              <img src="${u.avatarUrl}" class="w-12 h-12 rounded-full object-cover" />
+              <div class="min-w-0 flex-1">
+                <span class="text-xs font-bold text-white block truncate">${u.name}</span>
+                <span class="text-[11px] text-neutral-400 font-mono block truncate">${u.handle}</span>
+              </div>
+            </div>
+            ${isCur ? '<div class="text-[11px] text-red-400 font-bold bg-red-950/80 px-2 py-1 rounded">現在ログイン中</div>' : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function clearWatchHistory() {
+      watchHistoryList = [];
+      renderAccountScreen();
+      showToast('再生履歴を消去しました');
+    }
+
+    function switchUserAccount(userId) {
+      const found = APP_USERS.find(u => u.id === userId);
+      if (found) {
+        currentUser = found;
+        document.getElementById('headerUserAvatar').src = found.avatarUrl;
+        document.getElementById('dropdownUserAvatar').src = found.avatarUrl;
+        document.getElementById('dropdownUserName').innerText = found.name;
+        document.getElementById('dropdownUserHandle').innerText = found.handle;
+        document.getElementById('commentUserAvatar').src = found.avatarUrl;
+        document.getElementById('commentAsUserLabel').innerText = `${found.name} (${found.handle}) として投稿`;
+        renderAccountScreen();
+        showToast(`${found.name} に切り替えました`);
+      }
+    }
+
+    function playCurrentVideo() {
+      applyVideo(currentVideoId || 'dQw4w9WgXcQ');
+      switchMainView('player');
+    }
+
+    // Spreadsheet fetcher
+    function refreshSpreadsheetParam() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(param) {
+            currentSpreadsheetParam = param || '';
+            document.getElementById('sheetParamDisplay').innerText = param || '(標準)';
+            showToast('スプレッドシートからパラメータを同期しました');
+            if (currentVideoId) applyVideo(currentVideoId);
+          })
+          .getEducationParam();
+      } else {
+        fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv`)
+          .then(res => res.text())
+          .then(text => {
+            const firstLine = text.split('\n')[0].replace(/^"|"$/g, '').trim();
+            currentSpreadsheetParam = firstLine ? (firstLine.startsWith('?') || firstLine.startsWith('&') ? firstLine : '?' + firstLine) : '';
+            document.getElementById('sheetParamDisplay').innerText = currentSpreadsheetParam || '(標準)';
+            showToast('パラメータを再取得しました');
+            if (currentVideoId) applyVideo(currentVideoId);
+          })
+          .catch(() => {
+            document.getElementById('sheetParamDisplay').innerText = '(標準)';
+          });
+      }
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', function() {
+      refreshSpreadsheetParam();
+      renderCommentsList();
+      renderRelatedVideosList();
+      if (currentVideoId) {
+        applyVideo(currentVideoId);
+      }
+    });
+  </script>
+</body>
+</html>
